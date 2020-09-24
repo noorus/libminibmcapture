@@ -36,18 +36,15 @@
 #include <list>
 #include <map>
 #include <string>
-#include <fstream>
-#include <sstream>
-#include <queue>
-#include <regex>
-#include <stack>
 #include <cstdint>
 #include <algorithm>
-#include <random>
-#include <filesystem>
-#include <queue>
-#include <unordered_map>
-#include <utility>
-#include <variant>
-#include <any>
-#include <optional>
+
+namespace minibm {
+
+  using std::string;
+  using std::vector;
+  using std::move;
+  using std::shared_ptr;
+  using std::unique_ptr;
+
+}

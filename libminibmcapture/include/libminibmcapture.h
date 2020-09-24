@@ -6,23 +6,6 @@
 
 namespace minibm {
 
-  using std::string;
-  using std::vector;
-  using std::move;
-  using std::shared_ptr;
-  using std::unique_ptr;
-
-  inline string OleStrToString( BSTR dl_str )
-  {
-    int wlen = ::SysStringLen( dl_str );
-    int mblen = ::WideCharToMultiByte( CP_ACP, 0, (wchar_t*)dl_str, wlen, NULL, 0, NULL, NULL );
-
-    string ret_str( mblen, '\0' );
-    mblen = ::WideCharToMultiByte( CP_ACP, 0, (wchar_t*)dl_str, wlen, &ret_str[0], mblen, NULL, NULL );
-
-    return ret_str;
-  };
-
   struct Globals {
     bool comInitialized_;
     Globals();
@@ -87,12 +70,13 @@ namespace minibm {
     IDeckLinkProfileAttributes* attributes_ = nullptr;
     IDeckLinkConfiguration* config_ = nullptr;
     IDeckLinkInput* input_ = nullptr;
+    bool applyDetectedMode_ = false;
     bool init();
   protected:
     // IUnknown
-    virtual HRESULT	STDMETHODCALLTYPE	QueryInterface( REFIID iid, LPVOID* ppv );
-    virtual ULONG	STDMETHODCALLTYPE	AddRef();
-    virtual ULONG	STDMETHODCALLTYPE	Release();
+    virtual HRESULT STDMETHODCALLTYPE QueryInterface( REFIID iid, LPVOID* ppv );
+    virtual ULONG STDMETHODCALLTYPE AddRef();
+    virtual ULONG STDMETHODCALLTYPE Release();
     LONG refCount_;
     // IDeckLinkDeviceNotificationCallback
     virtual HRESULT STDMETHODCALLTYPE VideoInputFormatChanged(
@@ -108,6 +92,8 @@ namespace minibm {
     bool usable_ = false;
     bool hasInput_ = false;
     bool hasFormatDetection_ = false;
+    bool capturing_ = false;
+    BMDPixelFormat pixelFormat_ = bmdFormat8BitYUV;
     DisplayModeVector displayModes_;
     DecklinkDevice( IDeckLink* dl );
     bool startCapture( BMDDisplayMode displayMode );

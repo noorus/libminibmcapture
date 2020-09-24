@@ -26,7 +26,7 @@ typedef void( __stdcall* fn_get_version )( char* out_version, uint32_t versionle
 typedef uint32_t( __stdcall* fn_get_devices )();
 typedef bool( __stdcall* fn_get_device )( uint32_t index, char* out_name, uint32_t namelen, int64_t* out_id, uint32_t* out_displaymodecount, uint32_t* out_flags );
 typedef bool( __stdcall* fn_get_device_displaymode )( uint32_t device, uint32_t displaymode, uint32_t* out_width, uint32_t* out_height, uint32_t* out_timescale, uint32_t* out_frameduration, uint32_t* out_modecode );
-typedef bool( __stdcall* fn_start_capture_single )( uint32_t index, const char* capturemode );
+typedef bool( __stdcall* fn_start_capture_single )( uint32_t index, uint32_t modecode, const char* source );
 typedef void( __stdcall* fn_stop_capture_single )();
 
 int wmain( int argc, wchar_t** argv, wchar_t** env )
@@ -91,12 +91,19 @@ int wmain( int argc, wchar_t** argv, wchar_t** env )
       get_device_displaymode( 0, i, &w, &h, &timescale, &duration, &code );
       printf( "get_device_displaymode: %ix%ip %.2f (code %x)\r\n", w, h, (float)timescale / (float)duration, code );
     }
-    /*auto start_capture_single = (fn_start_capture_single)GetProcAddress( lib, "start_capture_single" );
-    if ( start_capture_single && deviceCount > 0 )
+    auto start_capture_single = (fn_start_capture_single)GetProcAddress( lib, "start_capture_single" );
+    auto stop_capture_single = (fn_stop_capture_single)GetProcAddress( lib, "stop_capture_single" );
+    if ( start_capture_single && stop_capture_single  && deviceCount > 0 )
     {
-      auto ret = start_capture_single( 0, "" );
+      auto ret = start_capture_single( 0, 0x48703235, "" );
       printf( "start_capture_single: %s\r\n", ret ? "true" : "false" );
-    }*/
+      if ( ret )
+      {
+        Sleep( 10000 );
+        stop_capture_single();
+        printf( "stop_capture_single\r\n" );
+      }
+    }
   }
 
   FreeLibrary( lib );

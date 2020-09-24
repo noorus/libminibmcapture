@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "libminidmcapture.h"
+#include "libminibmcapture.h"
 
 static minibm::DecklinkCapture* g_cap = nullptr;
 static minibm::DecklinkDeviceVector g_devices;

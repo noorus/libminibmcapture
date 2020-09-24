@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "libminidmcapture.h"
+#include "libminibmcapture.h"
 
 namespace minibm {
 
@@ -37,21 +37,6 @@ namespace minibm {
   {
     static string version = "libminibmcapture alpha (DeckLink API v" BLACKMAGIC_DECKLINK_API_VERSION_STRING ")";
     return version;
-  }
-
-  inline void resetIterator( IDeckLinkIterator** out )
-  {
-    if ( *out )
-    {
-      ( *out )->Release();
-      *out = nullptr;
-    }
-
-    auto result = CoCreateInstance( CLSID_CDeckLinkIterator, NULL, CLSCTX_ALL,
-      IID_IDeckLinkIterator, reinterpret_cast<void**>( out ) );
-
-    if ( result != S_OK )
-      *out = nullptr;
   }
 
   DecklinkCapture::DecklinkCapture()

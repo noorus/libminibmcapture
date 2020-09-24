@@ -1,5 +1,6 @@
 #include "pch.h"
-#include "libminidmcapture.h"
+#include "libminibmcapture.h"
+#include "utils.h"
 
 namespace minibm {
 
@@ -14,6 +15,24 @@ namespace minibm {
     IDeckLinkDisplayMode* newDisplayMode,
     BMDDetectedVideoInputFormatFlags detectedSignalFlags )
   {
+    printf( "VideoInputFormatChanged from thread 0x%X\r\n", GetCurrentThreadId() );
+
+    if ( notificationEvents & bmdVideoInputColorspaceChanged )
+    {
+      if ( detectedSignalFlags & bmdDetectedVideoInputYCbCr422 )
+        pixelFormat_ = bmdFormat10BitYUV;
+      else if ( detectedSignalFlags & bmdDetectedVideoInputRGB444 )
+        pixelFormat_ = bmdFormat10BitRGB;
+    }
+
+    if ( ( notificationEvents & bmdVideoInputDisplayModeChanged )
+      && applyDetectedMode_ )
+    {
+      input_->StopStreams();
+      input_->EnableVideoInput( newDisplayMode->GetDisplayMode(), pixelFormat_, bmdVideoInputEnableFormatDetection );
+      input_->StartStreams();
+    }
+
     return S_OK;
   }
 
@@ -21,6 +40,7 @@ namespace minibm {
     IDeckLinkVideoInputFrame* videoFrame,
     IDeckLinkAudioInputPacket* audioPacket )
   {
+    printf( "VideoInputFrameArrived from thread 0x%X\r\n", GetCurrentThreadId() );
     return S_OK;
   }
 
@@ -28,7 +48,7 @@ namespace minibm {
   {
     BSTR tmpStr;
     if ( decklink_->GetModelName( &tmpStr ) == S_OK )
-      name_ = OleStrToString( tmpStr );
+      name_ = bstrToString( tmpStr );
 
     if ( decklink_->QueryInterface( IID_IDeckLinkProfileAttributes,
       reinterpret_cast<void**>( &attributes_ ) ) != S_OK )
@@ -92,15 +112,48 @@ namespace minibm {
         modeValid = true;
     }
 
-    if ( !modeValid )
+    if ( !modeValid || capturing_ )
       return false;
+
+    input_->SetCallback( this );
+
+    BMDVideoInputFlags inputFlags = bmdVideoInputFlagDefault;
+    if ( hasFormatDetection_ )
+    {
+      inputFlags |= bmdVideoInputEnableFormatDetection;
+      applyDetectedMode_ = true;
+    } else
+      applyDetectedMode_ = false;
+
+    pixelFormat_ = bmdFormat8BitYUV;
+
+    if ( input_->EnableVideoInput( displayMode, pixelFormat_, inputFlags ) != S_OK )
+    {
+      input_->SetCallback( nullptr );
+      return false;
+    }
+
+    if ( input_->StartStreams() != S_OK )
+    {
+      input_->SetCallback( nullptr );
+      return false;
+    }
+
+    capturing_ = true;
+
+    printf( "startCapture from thread 0x%X\r\n", GetCurrentThreadId() );
 
     return true;
   }
 
   void DecklinkDevice::stopCapture()
   {
-    //
+    if ( input_ )
+    {
+      input_->StopStreams();
+      input_->SetCallback( nullptr );
+    }
+    capturing_ = false;
   }
 
   DecklinkDevice::~DecklinkDevice()
@@ -115,7 +168,7 @@ namespace minibm {
       decklink_->Release();
   }
 
-  HRESULT	STDMETHODCALLTYPE DecklinkDevice::QueryInterface( REFIID iid, LPVOID* ppv )
+  HRESULT STDMETHODCALLTYPE DecklinkDevice::QueryInterface( REFIID iid, LPVOID* ppv )
   {
     HRESULT result = E_NOINTERFACE;
 
@@ -153,7 +206,7 @@ namespace minibm {
 
   ULONG STDMETHODCALLTYPE DecklinkDevice::Release( void )
   {
-    int		newRefValue;
+    int newRefValue;
 
     newRefValue = InterlockedDecrement( (LONG*)&refCount_ );
     if ( newRefValue == 0 )
