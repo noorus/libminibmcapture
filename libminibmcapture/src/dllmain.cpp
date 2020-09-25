@@ -1,5 +1,10 @@
+// libminibmcapture (c) 2020 noorus
+// This software is licensed under the zlib license.
+// See the LICENSE file which should be included with
+// this source distribution for details.
+
 #include "pch.h"
-#include "libminibmcapture.h"
+#include "minibmcap.h"
 
 static minibm::DecklinkCapture* g_cap = nullptr;
 static minibm::DecklinkDeviceVector g_devices;
@@ -21,13 +26,7 @@ inline void resetCap()
   g_cap = nullptr;
 }
 
-enum DeviceFlags: uint32_t {
-  Device_CanAutodetectDisplayMode = 1
-};
-
 extern "C" {
-
-#define MINIBM_EXPORT __declspec( dllexport )
 
   // Could be used to figure out API/ABI compatibility stuff later, if the library evolves
   const uint32_t c_myVersion = 1;
@@ -56,7 +55,7 @@ extern "C" {
 
     uint32_t flags = 0;
     if ( g_devices[index]->hasFormatDetection_ )
-      flags |= Device_CanAutodetectDisplayMode;
+      flags |= minibm::Device_CanAutodetectDisplayMode;
 
     *out_flags = flags;
 

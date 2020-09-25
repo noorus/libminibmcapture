@@ -33,7 +33,10 @@
     <ClInclude Include="include\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\libminibmcapture.h">
+    <ClInclude Include="..\include\libminibmcapture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\minibmcap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
