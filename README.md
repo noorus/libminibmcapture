@@ -1,6 +1,8 @@
 # libminibmcapture
 
-Super duper minimal C-style exported dynamic library (DLL) for acquiring video input from Blackmagic DeckLink devices on Windows.  
+Super duper minimal C-style exported dynamic library, without dependencies,  
+for acquiring video input from Blackmagic DeckLink devices on Windows.  
+Truly a *minimum viable product* at this point in time.
 
 API (as exported by libminibmcapture*.dll):  
 ```cpp
@@ -16,3 +18,5 @@ bool get_frame_bgra32_blocking( uint32_t* out_width, uint32_t* out_height,
                                 uint8_t** out_buffer, uint32_t* out_index );
 void stop_capture_single();
 ```
+
+See the `test` project for usage in practice.
