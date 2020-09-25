@@ -27,6 +27,7 @@ typedef uint32_t( __stdcall* fn_get_devices )();
 typedef bool( __stdcall* fn_get_device )( uint32_t index, char* out_name, uint32_t namelen, int64_t* out_id, uint32_t* out_displaymodecount, uint32_t* out_flags );
 typedef bool( __stdcall* fn_get_device_displaymode )( uint32_t device, uint32_t displaymode, uint32_t* out_width, uint32_t* out_height, uint32_t* out_timescale, uint32_t* out_frameduration, uint32_t* out_modecode );
 typedef bool( __stdcall* fn_start_capture_single )( uint32_t index, uint32_t modecode, const char* source );
+typedef bool( __stdcall* fn_get_frame_bgra32_blocking )( uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer, uint32_t* out_index );
 typedef void( __stdcall* fn_stop_capture_single )();
 
 int wmain( int argc, wchar_t** argv, wchar_t** env )
@@ -93,13 +94,25 @@ int wmain( int argc, wchar_t** argv, wchar_t** env )
     }
     auto start_capture_single = (fn_start_capture_single)GetProcAddress( lib, "start_capture_single" );
     auto stop_capture_single = (fn_stop_capture_single)GetProcAddress( lib, "stop_capture_single" );
-    if ( start_capture_single && stop_capture_single  && deviceCount > 0 )
+    auto get_frame_bgra32_blocking = (fn_get_frame_bgra32_blocking)GetProcAddress( lib, "get_frame_bgra32_blocking" );
+    if ( start_capture_single && get_frame_bgra32_blocking && stop_capture_single && deviceCount > 0 )
     {
-      auto ret = start_capture_single( 0, 0x48703235, "" );
+      auto ret = start_capture_single( 0, 0x48703330, "" );
       printf( "start_capture_single: %s\r\n", ret ? "true" : "false" );
+      size_t ctr = 0;
       if ( ret )
       {
-        Sleep( 10000 );
+        while ( ctr < 250 )
+        {
+          uint32_t width, height, frameidx;
+          uint8_t* buf;
+          if ( get_frame_bgra32_blocking( &width, &height, &buf, &frameidx ) )
+          {
+            printf( "get_frame_bgra32_blocking: got frame %i, size %ix%i (at 0x%x)\r\n", frameidx, width, height, buf );
+          }
+          ctr++;
+          // Sleep( 100 );
+        }
         stop_capture_single();
         printf( "stop_capture_single\r\n" );
       }

@@ -89,6 +89,21 @@ extern "C" {
     return getCap().startCaptureSingle( g_devices[index], static_cast<BMDDisplayMode>( modecode ) );
   }
 
+  bool MINIBM_EXPORT get_frame_bgra32_blocking( uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer, uint32_t* out_index )
+  {
+    minibm::BGRA32VideoFrame* frame;
+    uint32_t index;
+    auto ret = getCap().getFrameBlocking( &frame, index );
+    if ( !ret )
+      return false;
+
+    *out_width = frame->GetWidth();
+    *out_height = frame->GetHeight();
+    *out_buffer = const_cast<uint8_t*>( frame->buffer().data() );
+    *out_index = index;
+    return true;
+  }
+
   void MINIBM_EXPORT stop_capture_single()
   {
     getCap().stopCaptureSingle();

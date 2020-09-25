@@ -39,18 +39,31 @@ namespace minibm {
     return version;
   }
 
+  bool DecklinkCapture::convertFrame( IDeckLinkVideoFrame* source, IDeckLinkVideoFrame* destination )
+  {
+    if ( !converter_ )
+      return false;
+    return ( SUCCEEDED( converter_->ConvertFrame( source, destination ) ) );
+  }
+
   DecklinkCapture::DecklinkCapture()
   {
-    //
+    auto ret = CoCreateInstance( CLSID_CDeckLinkVideoConversion, NULL, CLSCTX_ALL,
+      IID_IDeckLinkVideoConversion, reinterpret_cast<void**>( &converter_ ) );
+    if ( FAILED( ret ) )
+      converter_ = nullptr;
   }
 
   DecklinkCapture::~DecklinkCapture()
   {
-    //
+    if ( converter_ )
+      converter_->Release();
   }
 
   bool DecklinkCapture::startCaptureSingle( DecklinkDevice* device, BMDDisplayMode displayMode )
   {
+    ScopedRWLock lock( &lock_ );
+
     if ( currentCaptureDevice_ )
       return false;
 
@@ -67,8 +80,20 @@ namespace minibm {
     return false;
   }
 
+  bool DecklinkCapture::getFrameBlocking( BGRA32VideoFrame** out_frame, uint32_t& out_index )
+  {
+    ScopedRWLock lock( &lock_ );
+
+    if ( !currentCaptureDevice_ )
+      return false;
+
+    return currentCaptureDevice_->getFrameBlocking( out_frame, out_index );
+  }
+
   void DecklinkCapture::stopCaptureSingle()
   {
+    ScopedRWLock lock( &lock_ );
+
     if ( currentCaptureDevice_ )
     {
       currentCaptureDevice_->stopCapture();
@@ -96,7 +121,7 @@ namespace minibm {
     IDeckLink* device;
     while ( iterator->Next( &device ) == S_OK )
     {
-      auto instance = new DecklinkDevice( device );
+      auto instance = new DecklinkDevice( this, device );
       if ( instance->usable_ && instance->hasInput_ )
         devices_.push_back( move( instance ) );
       else
@@ -108,6 +133,8 @@ namespace minibm {
 
   bool DecklinkCapture::initialize()
   {
+    ScopedRWLock lock( &lock_ );
+
     if ( !g_globals.comInitialized_ && !g_globals.initialize() )
       return false;
 
@@ -117,6 +144,8 @@ namespace minibm {
 
   void DecklinkCapture::shutdown()
   {
+    ScopedRWLock lock( &lock_ );
+
     for ( auto device : devices_ )
     {
       device->Release();

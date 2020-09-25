@@ -4,7 +4,9 @@
 
 namespace minibm {
 
-  DecklinkDevice::DecklinkDevice( IDeckLink* dl ): decklink_( dl ), refCount_( 1 )
+  DecklinkDevice::DecklinkDevice( DecklinkCapture* owner, IDeckLink* dl ):
+    owner_( owner ), decklink_( dl ), refCount_( 1 ), frameIndex_( 0 ),
+    newFrameEvent_( false )
   {
     dl->AddRef();
     usable_ = init();
@@ -15,7 +17,7 @@ namespace minibm {
     IDeckLinkDisplayMode* newDisplayMode,
     BMDDetectedVideoInputFormatFlags detectedSignalFlags )
   {
-    printf( "VideoInputFormatChanged from thread 0x%X\r\n", GetCurrentThreadId() );
+    ScopedRWLock lock( &lock_ );
 
     if ( notificationEvents & bmdVideoInputColorspaceChanged )
     {
@@ -25,11 +27,15 @@ namespace minibm {
         pixelFormat_ = bmdFormat10BitRGB;
     }
 
-    if ( ( notificationEvents & bmdVideoInputDisplayModeChanged )
-      && applyDetectedMode_ )
+    if ( notificationEvents & bmdVideoInputDisplayModeChanged )
+    {
+      displayMode_ = DisplayMode( newDisplayMode );
+    }
+
+    if ( applyDetectedMode_ )
     {
       input_->StopStreams();
-      input_->EnableVideoInput( newDisplayMode->GetDisplayMode(), pixelFormat_, bmdVideoInputEnableFormatDetection );
+      input_->EnableVideoInput( displayMode_.value_, pixelFormat_, bmdVideoInputEnableFormatDetection );
       input_->StartStreams();
     }
 
@@ -40,12 +46,42 @@ namespace minibm {
     IDeckLinkVideoInputFrame* videoFrame,
     IDeckLinkAudioInputPacket* audioPacket )
   {
-    printf( "VideoInputFrameArrived from thread 0x%X\r\n", GetCurrentThreadId() );
+    if ( videoFrame )
+    {
+      ScopedRWLock lock( &lock_ );
+      frame_.match( videoFrame );
+      owner_->convertFrame( videoFrame, &frame_ );
+      frameIndex_.fetch_add( 1 );
+      newFrameEvent_.set();
+    }
+
     return S_OK;
+  }
+
+  bool DecklinkDevice::getFrameBlocking( BGRA32VideoFrame** out_frame, uint32_t& out_index )
+  {
+    if ( !capturing_ )
+      return false;
+    while ( frameIndex_.load() <= lastReturnedFrameIndex_ )
+    {
+      newFrameEvent_.reset();
+      newFrameEvent_.wait( 1000 );
+    }
+    {
+      lock_.lock();
+      lastReturnedFrameIndex_ = frameIndex_.load();
+      storedFrame_.swap( frame_ );
+      lock_.unlock();
+    }
+    *out_frame = &storedFrame_;
+    out_index = lastReturnedFrameIndex_;
+    return true;
   }
 
   bool DecklinkDevice::init()
   {
+    ScopedRWLock lock( &lock_ );
+
     BSTR tmpStr;
     if ( decklink_->GetModelName( &tmpStr ) == S_OK )
       name_ = bstrToString( tmpStr );
@@ -83,13 +119,8 @@ namespace minibm {
       IDeckLinkDisplayMode* displayMode;
       while ( dmIterator->Next( &displayMode ) == S_OK )
       {
-        DisplayMode dm;
-        dm.width_ = displayMode->GetWidth();
-        dm.height_ = displayMode->GetHeight();
-        dm.value_ = displayMode->GetDisplayMode();
-        dm.fields_ = displayMode->GetFieldDominance();
-        displayMode->GetFrameRate( &dm.frameDuration_, &dm.timeScale_ );
-        // hack: we'll only push progressive modes as valid for now
+        DisplayMode dm( displayMode );
+        // hack: we'll only push progressive modes as valid, for now
         // because I don't feel like dealing with scanlines right out of the gate
         if ( dm.fields_ == BMDFieldDominance::bmdProgressiveFrame )
         {
@@ -105,15 +136,22 @@ namespace minibm {
 
   bool DecklinkDevice::startCapture( BMDDisplayMode displayMode )
   {
+    ScopedRWLock lock( &lock_ );
+
     bool modeValid = false;
     for ( auto& mode : displayModes_ )
     {
       if ( mode.value_ == displayMode )
+      {
+        displayMode_ = mode;
         modeValid = true;
+      }
     }
 
     if ( !modeValid || capturing_ )
       return false;
+
+    frameIndex_.store( 0 );
 
     input_->SetCallback( this );
 
@@ -125,7 +163,7 @@ namespace minibm {
     } else
       applyDetectedMode_ = false;
 
-    pixelFormat_ = bmdFormat8BitYUV;
+    pixelFormat_ = bmdFormat8BitARGB;
 
     if ( input_->EnableVideoInput( displayMode, pixelFormat_, inputFlags ) != S_OK )
     {
@@ -141,23 +179,26 @@ namespace minibm {
 
     capturing_ = true;
 
-    printf( "startCapture from thread 0x%X\r\n", GetCurrentThreadId() );
-
     return true;
   }
 
   void DecklinkDevice::stopCapture()
   {
+    ScopedRWLock lock( &lock_ );
+
     if ( input_ )
     {
       input_->StopStreams();
       input_->SetCallback( nullptr );
     }
+
     capturing_ = false;
   }
 
   DecklinkDevice::~DecklinkDevice()
   {
+    ScopedRWLock lock( &lock_ );
+
     if ( input_ )
       input_->Release();
     if ( config_ )

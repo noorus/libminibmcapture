@@ -38,6 +38,7 @@
 #include <string>
 #include <cstdint>
 #include <algorithm>
+#include <atomic>
 
 namespace minibm {
 
@@ -46,5 +47,6 @@ namespace minibm {
   using std::move;
   using std::shared_ptr;
   using std::unique_ptr;
+  using std::atomic;
 
 }
