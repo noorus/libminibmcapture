@@ -50,7 +50,7 @@ static string json_buffer;
 extern "C" {
 
   // Could be used to figure out API/ABI compatibility stuff later, if the library evolves
-  const uint32_t c_myVersion = 2;
+  const uint32_t c_myVersion = 3;
 
   void MINIBM_EXPORT get_version( char* out_version, uint32_t versionlen, uint32_t* out_minibmver )
   {
@@ -122,6 +122,23 @@ extern "C" {
     *out_buffer = const_cast<uint8_t*>( frame->buffer().data() );
     *out_index = index;
     return true;
+  }
+
+  bool MINIBM_EXPORT read_frame_bgra32_blocking(uint8_t *buffer, uint32_t len) {
+      uint32_t width;
+      uint32_t height;
+      uint8_t *frame;
+      uint32_t index;
+
+      if (!get_frame_bgra32_blocking(&width, &height, &frame, &index))
+          return false;
+
+      if (len != width * height * 4)
+          return false;
+
+      memcpy(buffer, frame, len);
+
+      return true;
   }
 
   void MINIBM_EXPORT stop_capture_single()
