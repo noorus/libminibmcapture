@@ -161,7 +161,7 @@ extern "C" {
               break;
           ss << "{\"id\": " << dev << ",";
           ss << "\"name\": \"" << escape(string(dev_name)) << "\",";
-          ss << "\"bmId\": \"" << bm_id << "\",";
+          ss << "\"bmId\": " << bm_id << ",";
           ss << "\"bmFlags\": \"" << bm_flags << "\",";
           ss << "\"caps\": [";
           for (uint32_t dcap = 0; dcap < mode_count; dcap++) {
