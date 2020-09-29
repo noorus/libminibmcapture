@@ -6,6 +6,11 @@
 #include "pch.h"
 #include "minibmcap.h"
 
+#include <sstream>
+#include <iomanip>
+
+using namespace std;
+
 static minibm::DecklinkCapture* g_cap = nullptr;
 static minibm::DecklinkDeviceVector g_devices;
 
@@ -26,10 +31,26 @@ inline void resetCap()
   g_cap = nullptr;
 }
 
+string escape(string str) {
+    std::ostringstream o;
+    for (auto c = str.cbegin(); c != str.cend(); c++) {
+        if (*c == '"' || *c == '\\' || ('\x00' <= *c && *c <= '\x1f')) {
+            o << "\\u"
+                << std::hex << std::setw(4) << std::setfill('0') << (int)*c;
+        }
+        else {
+            o << *c;
+        }
+    }
+    return o.str();
+}
+
+static string json_buffer;
+
 extern "C" {
 
   // Could be used to figure out API/ABI compatibility stuff later, if the library evolves
-  const uint32_t c_myVersion = 1;
+  const uint32_t c_myVersion = 2;
 
   void MINIBM_EXPORT get_version( char* out_version, uint32_t versionlen, uint32_t* out_minibmver )
   {
@@ -108,6 +129,65 @@ extern "C" {
     getCap().stopCaptureSingle();
   }
 
+  int MINIBM_EXPORT get_json_length() {
+      char dev_name[2048];
+      ostringstream ss;
+      int n = get_devices();
+      ss << "[";
+      for (int dev = 0; dev < n; dev++) {
+          if (dev > 0)
+              ss << ",";
+          int64_t bm_id;
+          uint32_t mode_count;
+          uint32_t bm_flags;
+          if (!get_device(dev, dev_name, 2048, &bm_id, &mode_count, &bm_flags))
+              break;
+          ss << "{\"id\": " << dev << ",";
+          ss << "\"name\": \"" << escape(string(dev_name)) << "\",";
+          ss << "\"bmId\": \"" << bm_id << "\",";
+          ss << "\"bmFlags\": \"" << bm_flags << "\",";
+          ss << "\"caps\": [";
+          for (uint32_t dcap = 0; dcap < mode_count; dcap++) {
+              uint32_t width;
+              uint32_t height;
+              uint32_t timescale;
+              uint32_t frameduration;
+              uint32_t modecode;
+              if (!get_device_displaymode(dev, dcap, &width, &height, &timescale, &frameduration, &modecode))
+                  break;
+
+              double fps = (double)timescale / (double)frameduration;
+              int interval = (int)(10000000 / fps);
+
+              if (dcap > 0)
+                  ss << ",";
+              ss << "{";
+              ss << "\"id\": " << dcap << ",";
+              ss << "\"minCX\": " << width << ",";
+              ss << "\"minCY\": " << height << ",";
+              ss << "\"maxCX\": " << width << ",";
+              ss << "\"maxCY\": " << height << ",";
+              ss << "\"granularityCX\": " << 1 << ",";
+              ss << "\"granularityCY\": " << 1 << ",";
+              ss << "\"minInterval\": " << interval << ",";
+              ss << "\"maxInterval\": " << interval << ",";
+              ss << "\"bmTimescale\": " << timescale << ",";
+              ss << "\"bmFrameduration\": " << frameduration << ",";
+              ss << "\"bmModecode\": " << modecode << ",";
+              ss << "\"rating\": 1,";
+              ss << "\"format\": 100";
+              ss << "}";
+          }
+          ss << "]}";
+      }
+      ss << "]";
+      json_buffer = ss.str();
+      return (int)json_buffer.length() + 1;
+  }
+
+  void MINIBM_EXPORT get_json(char *out_buffer, uint32_t buffer_length) {
+      strncpy(out_buffer, json_buffer.c_str(), buffer_length);
+  }
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved )

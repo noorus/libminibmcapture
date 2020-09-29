@@ -22,6 +22,8 @@ minibm::fn_get_device_displaymode get_device_displaymode = nullptr;
 minibm::fn_start_capture_single start_capture_single = nullptr;
 minibm::fn_get_frame_bgra32_blocking get_frame_bgra32_blocking = nullptr;
 minibm::fn_stop_capture_single stop_capture_single = nullptr;
+minibm::fn_get_json_length get_json_length = nullptr;
+minibm::fn_get_json get_json = nullptr;
 
 HMODULE lib = 0;
 
@@ -38,9 +40,12 @@ bool loadDynamically()
   start_capture_single = (minibm::fn_start_capture_single)GetProcAddress( lib, "start_capture_single" );
   stop_capture_single = (minibm::fn_stop_capture_single)GetProcAddress( lib, "stop_capture_single" );
   get_frame_bgra32_blocking = (minibm::fn_get_frame_bgra32_blocking)GetProcAddress( lib, "get_frame_bgra32_blocking" );
+  get_json_length = (minibm::fn_get_json_length)GetProcAddress(lib, "get_json_length");
+  get_json = (minibm::fn_get_json)GetProcAddress(lib, "get_json");
 
   return ( get_version && get_devices && get_device && get_device_displaymode
-    && start_capture_single && stop_capture_single && get_frame_bgra32_blocking );
+    && start_capture_single && stop_capture_single && get_frame_bgra32_blocking 
+    && get_json_length && get_json );
 }
 
 void unloadDynamically()
@@ -76,6 +81,13 @@ int wmain( int argc, wchar_t** argv, wchar_t** env )
   uint32_t minibmVer = 0;
   get_version( verstr, 256, &minibmVer );
   printf( "get_version: %s / minibmcap API version %i\r\n", verstr, minibmVer );
+
+  int jsonLen = get_json_length();
+  printf("get_json_len: %i\r\n", jsonLen);
+
+  char *jsonBuf = new char[jsonLen];
+  get_json(jsonBuf, jsonLen);
+  printf("get_json: %s\r\n", jsonBuf);
 
   uint32_t deviceCount = get_devices();
   printf( "get_devices: %i\r\n", deviceCount );
