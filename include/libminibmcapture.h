@@ -94,6 +94,12 @@ namespace minibm {
     //! \brief  Stop capturing on a single Blackmagic device.
     void MINIBM_CALL stop_capture_single();
 
+    int MINIBM_CALL get_json_length();
+
+    void MINIBM_CALL get_json(char *out_buffer, uint32_t buffer_length);
+
+    bool MINIBM_CALL read_frame_bgra32_blocking(uint8_t *buffer, uint32_t len)
+
   }
 
 #else
@@ -125,6 +131,13 @@ namespace minibm {
 
   typedef void( MINIBM_CALL* fn_stop_capture_single )();
 
+  typedef int(MINIBM_CALL* fn_get_json_length)();
+
+  typedef void(MINIBM_CALL* fn_get_json)(
+      char *out_buffer, uint32_t buffer_length);
+
+  typedef void(MINIBM_CALL* read_frame_bgra32_blocking)(
+      char *out_buffer, uint32_t buffer_length);
 #endif
 
 }
