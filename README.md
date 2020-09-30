@@ -46,7 +46,7 @@ bool get_device( uint32_t index, char* out_name, uint32_t namelen, int64_t* out_
 //! \param [out] out_frameduration Pointer to a variable that will receive the frame duration.
 //! \param [out] out_modecode      Pointer to a variable that will receive the internal unique code for this display mode.
 //! \returns True if it succeeds, false if it fails.
-bool MINIBM_CALL get_device_displaymode( uint32_t device, uint32_t displaymode, uint32_t* out_width, uint32_t* out_height, uint32_t* out_timescale, uint32_t* out_frameduration, uint32_t* out_modecode );
+bool get_device_displaymode( uint32_t device, uint32_t displaymode, uint32_t* out_width, uint32_t* out_height, uint32_t* out_timescale, uint32_t* out_frameduration, uint32_t* out_modecode );
 
 //! \fn bool __stdcall start_capture_single( uint32_t index, uint32_t modecode, const char* source );
 //! \brief Starts capturing on a single Blackmagic device.
@@ -55,7 +55,7 @@ bool MINIBM_CALL get_device_displaymode( uint32_t device, uint32_t displaymode, 
 //! \param capture_options A properly formatted string of extra options on how the capture should behave.
 //!                        Can be empty or null if no extra options are needed.
 //! \returns True if it succeeds, false if it fails.
-bool MINIBM_CALL start_capture_single( uint32_t index, uint32_t modecode, const char* capture_options );
+bool start_capture_single( uint32_t index, uint32_t modecode, const char* capture_options );
 
 //! \fn bool __stdcall get_frame_bgra32_blocking( uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer, uint32_t* out_index );
 //! \brief Get a single frame from the currently ongoing capture.
@@ -71,24 +71,24 @@ bool MINIBM_CALL start_capture_single( uint32_t index, uint32_t modecode, const 
 //! \param [out] out_index  Pointer to a variable that will receive the index of the returned frame.
 //!              Frame index counting will always restart from zero when starting a new capture.
 //! \returns True if it succeeds, false if it fails.
-bool MINIBM_CALL get_frame_bgra32_blocking( uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer, uint32_t* out_index );
+bool get_frame_bgra32_blocking( uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer, uint32_t* out_index );
 
 //! \fn void __stdcall stop_capture_single();
 //! \brief Stop capturing on a single Blackmagic device.
-void MINIBM_CALL stop_capture_single();
+void stop_capture_single();
 
 //! \fn int __stdcall get_json_length();
 //! \brief Gets the length of the needed buffer for JSON output.
 //! \returns The JSON length in bytes.
-int MINIBM_CALL get_json_length();
+int get_json_length();
 
 //! \fn void __stdcall get_json(char *out_buffer, uint32_t buffer_length);
 //! \brief Fills a buffer with a JSON dump of all supported device and display mode data.
 //! \param [out] out_buffer Pointer to a buffer that will receive the JSON dump.
 //! \param       buffer_length Length of the buffer in bytes.
-void MINIBM_CALL get_json(char *out_buffer, uint32_t buffer_length);
+void get_json(char *out_buffer, uint32_t buffer_length);
 
-bool MINIBM_CALL read_frame_bgra32_blocking(uint8_t *buffer, uint32_t len)
+bool read_frame_bgra32_blocking(uint8_t *buffer, uint32_t len)
 ```
 
 See the `test` project for usage in practice.
