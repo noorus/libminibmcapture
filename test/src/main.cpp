@@ -77,6 +77,20 @@ int wmain( int argc, wchar_t** argv, wchar_t** env )
   }
 #endif
 
+  uint32_t targetTestDevice = 0;
+  uint32_t targetTestDisplayMode = 0xFFFFFFFF;
+  for ( auto i = 0; i < argc; ++i )
+  {
+    if ( wcscmp( argv[i], L"-d" ) == 0 && i < ( argc - 1 ) )
+    {
+      targetTestDevice = _wtoi( argv[i + 1] );
+    }
+    else if ( wcscmp( argv[i], L"-m" ) == 0 && i < ( argc - 1 ) )
+    {
+      targetTestDisplayMode = _wtoi( argv[i + 1] );
+    }
+  }
+
   char verstr[256] = { 0 };
   uint32_t minibmVer = 0;
   get_version( verstr, 256, &minibmVer );
@@ -92,7 +106,7 @@ int wmain( int argc, wchar_t** argv, wchar_t** env )
   uint32_t deviceCount = get_devices();
   printf( "get_devices: %i\r\n", deviceCount );
 
-  uint32_t dev0DispModeCount = 0;
+  uint32_t targetDeviceDisplayModeCount = 0;
   for ( uint32_t i = 0; i < deviceCount; ++i )
   {
     char namestr[256] = { 0 };
@@ -104,37 +118,51 @@ int wmain( int argc, wchar_t** argv, wchar_t** env )
       i, ret ? namestr : "failed", id, dms,
       ( flags & DeviceFlags::Device_CanAutodetectDisplayMode ) ? "can" : "can't"
     );
-    if ( i == 0 )
-      dev0DispModeCount = dms;
+    if ( i == targetTestDevice )
+      targetDeviceDisplayModeCount = dms;
   }
+
+  printf( "Using target device %i\r\n", targetTestDevice );
+
+  uint32_t nativeDispmodeCode = 0;
 
   if ( deviceCount > 0 )
   {
-    for ( uint32_t i = 0; i < dev0DispModeCount; ++i )
+    for ( uint32_t i = 0; i < targetDeviceDisplayModeCount; ++i )
     {
       uint32_t w, h, timescale, duration, code;
-      get_device_displaymode( 0, i, &w, &h, &timescale, &duration, &code );
-      printf( "get_device_displaymode: %ix%ip %.2f (code %x)\r\n", w, h, (float)timescale / (float)duration, code );
-    }
-    auto ret = start_capture_single( 0, 0x48703330, "" );
-    printf( "start_capture_single: %s\r\n", ret ? "true" : "false" );
-    size_t ctr = 0;
-    if ( ret )
-    {
-      printf( "entering get_frame loop\r\n" );
-      while ( ctr < 100 )
+      if ( get_device_displaymode( targetTestDevice, i, &w, &h, &timescale, &duration, &code ) )
       {
-        uint32_t width, height, frameidx;
-        uint8_t* buf;
-        if ( get_frame_bgra32_blocking( &width, &height, &buf, &frameidx ) )
+        printf( "get_device_displaymode: %i = %ix%ip %.2f (code %x)\r\n", i, w, h, (float)timescale / (float)duration, code );
+        if ( i == targetTestDisplayMode )
         {
-          printf( "get_frame_bgra32_blocking: got frame %i, size %ix%i (at 0x%I64x)\r\n", frameidx, width, height, reinterpret_cast<uint64_t>( buf ) );
+          nativeDispmodeCode = code;
         }
-        ctr++;
-        // Sleep( 100 );
       }
-      stop_capture_single();
-      printf( "stop_capture_single\r\n" );
+    }
+    printf( "Using target display mode %i\r\n", targetTestDisplayMode );
+    if ( nativeDispmodeCode != 0 )
+    {
+      auto ret = start_capture_single( targetTestDevice, nativeDispmodeCode, "" );
+      printf( "start_capture_single: %s\r\n", ret ? "true" : "false" );
+      size_t ctr = 0;
+      if ( ret )
+      {
+        printf( "entering get_frame loop\r\n" );
+        while ( ctr < 100 )
+        {
+          uint32_t width, height, frameidx;
+          uint8_t* buf;
+          if ( get_frame_bgra32_blocking( &width, &height, &buf, &frameidx ) )
+          {
+            printf( "get_frame_bgra32_blocking: got frame %i, size %ix%i (at 0x%I64x)\r\n", frameidx, width, height, reinterpret_cast<uint64_t>( buf ) );
+          }
+          ctr++;
+          // Sleep( 100 );
+        }
+        stop_capture_single();
+        printf( "stop_capture_single\r\n" );
+      }
     }
   }
 
