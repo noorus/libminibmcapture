@@ -50,7 +50,7 @@ static string json_buffer;
 extern "C" {
 
   // Could be used to figure out API/ABI compatibility stuff later, if the library evolves
-  const uint32_t c_myVersion = 3;
+  const uint32_t c_myVersion = 4;
 
   void MINIBM_EXPORT get_version( char* out_version, uint32_t versionlen, uint32_t* out_minibmver )
   {
@@ -63,6 +63,11 @@ extern "C" {
   {
     g_devices = getCap().getDevices();
     return static_cast<uint32_t>( g_devices.size() );
+  }
+
+  void MINIBM_EXPORT set_options( const char* library_options )
+  {
+    // Todo
   }
 
   bool MINIBM_EXPORT get_device( uint32_t index, char* out_name, uint32_t namelen, int64_t* out_id, uint32_t* out_displaymodecount, uint32_t* out_flags )
@@ -101,7 +106,7 @@ extern "C" {
     return true;
   }
 
-  bool MINIBM_EXPORT start_capture_single( uint32_t index, uint32_t modecode, const char* source )
+  bool MINIBM_EXPORT start_capture_single( uint32_t index, uint32_t modecode, const char* capture_options )
   {
     if ( g_devices.empty() || index >= g_devices.size() )
       return false;

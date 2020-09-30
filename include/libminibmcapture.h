@@ -31,8 +31,14 @@ namespace minibm {
 
     //! \fn uint32_t __stdcall get_devices();
     //! \brief Get the number of available Blackmagic devices.
-    //! \returns  The number of devices.
+    //! \returns The number of devices.
     uint32_t MINIBM_CALL get_devices();
+
+    //! \fn void __stdcall set_options( const char* library_options );
+    //! \brief Sets a global options string for the library.
+    //! \param library_options A properly formatted options string.
+    //!                        Can be empty or null if no extra options are needed.
+    void MINIBM_CALL set_options( const char* library_options );
 
     //! \fn bool __stdcall get_device( uint32_t index, char* out_name, uint32_t namelen, int64_t* out_id, uint32_t* out_displaymodecount, uint32_t* out_flags );
     //! \brief Get the details of a specific Blackmagic device.
@@ -42,7 +48,7 @@ namespace minibm {
     //! \param [out] out_id                Pointer to a variable that will receive the persistent unique device ID.
     //! \param [out] out_displaymodecount  Pointer to a variable that will receive the number of available display modes on the device.
     //! \param [out] out_flags             Pointer to a variable that will receive the device flags. \see DeviceFlags
-    //! \returns  True if it succeeds, false if it fails.
+    //! \returns True if it succeeds, false if it fails.
     bool MINIBM_CALL get_device(
       uint32_t index, char* out_name, uint32_t namelen, int64_t* out_id,
       uint32_t* out_displaymodecount, uint32_t* out_flags );
@@ -65,12 +71,13 @@ namespace minibm {
 
     //! \fn bool __stdcall start_capture_single( uint32_t index, uint32_t modecode, const char* source );
     //! \brief Starts capturing on a single Blackmagic device.
-    //! \param index    Zero-based index of the target device.
-    //! \param modecode The unique code of the display mode to use. Can be found by enumerating get_device_displaymode.
-    //! \param source   Currently unused, pass nullptr or empty string.
+    //! \param index           Zero-based index of the target device.
+    //! \param modecode        The unique code of the display mode to use. Can be found by enumerating get_device_displaymode.
+    //! \param capture_options A properly formatted string of extra options on how the capture should behave.
+    //!                        Can be empty or null if no extra options are needed.
     //! \returns True if it succeeds, false if it fails.
     bool MINIBM_CALL start_capture_single(
-      uint32_t index, uint32_t modecode, const char* source );
+      uint32_t index, uint32_t modecode, const char* capture_options );
 
     //! \fn bool __stdcall get_frame_bgra32_blocking( uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer, uint32_t* out_index );
     //! \brief Get a single frame from the currently ongoing capture.
@@ -85,13 +92,13 @@ namespace minibm {
     //!              The buffer and data in it will be valid until the next get_frame call or stopped capture.
     //! \param [out] out_index  Pointer to a variable that will receive the index of the returned frame.
     //!              Frame index counting will always restart from zero when starting a new capture.
-    //! \returns  True if it succeeds, false if it fails.
+    //! \returns True if it succeeds, false if it fails.
     bool MINIBM_CALL get_frame_bgra32_blocking(
       uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer,
       uint32_t* out_index );
 
     //! \fn void __stdcall stop_capture_single();
-    //! \brief  Stop capturing on a single Blackmagic device.
+    //! \brief Stop capturing on a single Blackmagic device.
     void MINIBM_CALL stop_capture_single();
 
     //! \fn int __stdcall get_json_length();
@@ -120,6 +127,9 @@ namespace minibm {
 
   typedef uint32_t( MINIBM_CALL* fn_get_devices )();
 
+  typedef void( MINIBM_CALL* fn_set_options )(
+    const char* library_options );
+
   typedef bool( MINIBM_CALL* fn_get_device )(
     uint32_t index, char* out_name, uint32_t namelen, int64_t* out_id,
     uint32_t* out_displaymodecount, uint32_t* out_flags );
@@ -130,7 +140,7 @@ namespace minibm {
     uint32_t* out_frameduration, uint32_t* out_modecode );
 
   typedef bool( MINIBM_CALL* fn_start_capture_single )(
-    uint32_t index, uint32_t modecode, const char* source );
+    uint32_t index, uint32_t modecode, const char* capture_options );
 
   typedef bool( MINIBM_CALL* fn_get_frame_bgra32_blocking )(
     uint32_t* out_width, uint32_t* out_height, uint8_t** out_buffer,

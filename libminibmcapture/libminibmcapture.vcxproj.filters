@@ -16,28 +16,31 @@
     <Filter Include="external">
       <UniqueIdentifier>{3a6d0f2d-d8d5-47d5-a10f-20ffb33d6a69}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\midl">
+    <Filter Include="Header Files\implementation">
+      <UniqueIdentifier>{c6a41d1e-6f37-4a3d-8915-2489065eaf53}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\implementation\midl">
       <UniqueIdentifier>{a3b5004a-567b-44bf-b9fd-261903df94c8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\decklink_api\DeckLinkAPIVersion.h">
       <Filter>external</Filter>
     </ClInclude>
     <ClInclude Include="midl\DeckLinkAPI_h.h">
-      <Filter>Header Files\midl</Filter>
-    </ClInclude>
-    <ClInclude Include="include\utils.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\implementation\midl</Filter>
     </ClInclude>
     <ClInclude Include="..\include\libminibmcapture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\minibmcap.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pch.h">
+      <Filter>Header Files\implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="include\utils.h">
+      <Filter>Header Files\implementation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -53,7 +56,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="midl\DeckLinkAPI_i.c">
-      <Filter>Header Files\midl</Filter>
+      <Filter>Header Files\implementation\midl</Filter>
     </ClCompile>
     <ClCompile Include="src\decklinkcapture.cpp">
       <Filter>Source Files</Filter>
