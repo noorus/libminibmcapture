@@ -94,8 +94,15 @@ namespace minibm {
     //! \brief  Stop capturing on a single Blackmagic device.
     void MINIBM_CALL stop_capture_single();
 
+    //! \fn int __stdcall get_json_length();
+    //! \brief Gets the length of the needed buffer for JSON output.
+    //! \returns The JSON length in bytes.
     int MINIBM_CALL get_json_length();
 
+    //! \fn void __stdcall get_json(char *out_buffer, uint32_t buffer_length);
+    //! \brief Fills a buffer with a JSON dump of all supported device and display mode data.
+    //! \param [out] out_buffer Pointer to a buffer that will receive the JSON dump.
+    //! \param       buffer_length Length of the buffer in bytes.
     void MINIBM_CALL get_json(char *out_buffer, uint32_t buffer_length);
 
     bool MINIBM_CALL read_frame_bgra32_blocking(uint8_t *buffer, uint32_t len)
